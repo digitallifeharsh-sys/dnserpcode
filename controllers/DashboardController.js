@@ -35,14 +35,19 @@ export default class DashboardController {
             `);
             const [upcoming] = await db.execute(`
                 SELECT * FROM (
-                    SELECT s.id, s.student_name, COALESCE(sp.reference_number,'Installment') AS title,
+                    SELECT s.id,
+                           CONVERT(s.student_name USING utf8mb4) COLLATE utf8mb4_unicode_ci AS student_name,
+                           CONVERT(COALESCE(sp.reference_number,'Installment') USING utf8mb4) COLLATE utf8mb4_unicode_ci AS title,
                            sp.scheduled_date AS due_date, sp.scheduled_amount AS amount,
                            sp.received_amount AS paid
                     FROM scheduled_payments sp JOIN students s ON s.id=sp.student_id
                     WHERE s.is_archived=FALSE AND sp.status IN ('UPCOMING','PARTIAL')
                       AND sp.scheduled_date >= CURDATE() AND sp.scheduled_amount > sp.received_amount
                     UNION ALL
-                    SELECT s.id, s.student_name, i.title, i.due_date, i.amount,
+                    SELECT s.id,
+                           CONVERT(s.student_name USING utf8mb4) COLLATE utf8mb4_unicode_ci AS student_name,
+                           CONVERT(i.title USING utf8mb4) COLLATE utf8mb4_unicode_ci AS title,
+                           i.due_date, i.amount,
                            COALESCE(p.paid,0) AS paid
                     FROM student_installments i JOIN students s ON s.id=i.student_id
                     LEFT JOIN (SELECT installment_id, SUM(amount) AS paid FROM student_payments WHERE status='PAID' GROUP BY installment_id) p ON p.installment_id=i.id
@@ -53,14 +58,19 @@ export default class DashboardController {
             `);
             const [overdue] = await db.execute(`
                 SELECT * FROM (
-                    SELECT s.id, s.student_name, COALESCE(sp.reference_number,'Installment') AS title,
+                    SELECT s.id,
+                           CONVERT(s.student_name USING utf8mb4) COLLATE utf8mb4_unicode_ci AS student_name,
+                           CONVERT(COALESCE(sp.reference_number,'Installment') USING utf8mb4) COLLATE utf8mb4_unicode_ci AS title,
                            sp.scheduled_date AS due_date, sp.scheduled_amount AS amount,
                            sp.received_amount AS paid
                     FROM scheduled_payments sp JOIN students s ON s.id=sp.student_id
                     WHERE s.is_archived=FALSE AND sp.status IN ('UPCOMING','PARTIAL')
                       AND sp.scheduled_date < CURDATE() AND sp.scheduled_amount > sp.received_amount
                     UNION ALL
-                    SELECT s.id, s.student_name, i.title, i.due_date, i.amount,
+                    SELECT s.id,
+                           CONVERT(s.student_name USING utf8mb4) COLLATE utf8mb4_unicode_ci AS student_name,
+                           CONVERT(i.title USING utf8mb4) COLLATE utf8mb4_unicode_ci AS title,
+                           i.due_date, i.amount,
                            COALESCE(p.paid,0) AS paid
                     FROM student_installments i JOIN students s ON s.id=i.student_id
                     LEFT JOIN (SELECT installment_id, SUM(amount) AS paid FROM student_payments WHERE status='PAID' GROUP BY installment_id) p ON p.installment_id=i.id
