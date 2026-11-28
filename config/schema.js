@@ -4,13 +4,14 @@ import createFeePaymentTables from '../models/feePaymentTables.js';
 import createScheduledPaymentTables from '../models/scheduledPaymentTables.js';
 
 export async function initializeSchema() {
-    const databaseName = process.env.DB_NAME || 'erpfee';
+    const databaseName = process.env.DB_NAME;
+    if (!databaseName) throw new Error('DB_NAME is required');
     if (!/^[a-zA-Z0-9_-]+$/.test(databaseName)) throw new Error('Invalid DB_NAME');
     const server = await mysql.createConnection({
-        host: process.env.DB_HOST || 'localhost',
+        host: process.env.DB_HOST,
         port: Number(process.env.DB_PORT || 3306),
-        user: process.env.DB_USER || 'harsh',
-        password: process.env.DB_PASSWORD || 'Harsh0003'
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD
     });
     await server.query(`CREATE DATABASE IF NOT EXISTS \`${databaseName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
     await server.end();
