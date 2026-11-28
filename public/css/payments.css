@@ -1,0 +1,16 @@
+
+/* Unified fee payment + installment schedule module */
+.payment-system-card .nav-tabs .nav-link { font-weight: 600; white-space: nowrap; }
+.payment-history-table { min-width: 820px; }
+.payment-history-table th, .payment-history-table td { vertical-align: middle; }
+.payment-system-card .card-header p { line-height: 1.4; }
+.schedule-action-form { padding: 14px; border: 1px solid #e6eaf2; border-radius: 10px; background: #f8faff; }
+.schedule-action-form .form-label { font-size: .82rem; font-weight: 600; }
+@media (max-width: 767.98px) {
+    .payment-history-table { min-width: 760px; }
+    .payment-system-card .card-header { align-items: stretch !important; }
+    .payment-system-card .card-header > .d-flex { width: 100%; }
+    .payment-system-card .card-header > .d-flex .btn { flex: 1 1 150px; }
+    .schedule-action-form { padding: 10px; }
+    .schedule-action-form .btn { width: 100%; }
+}

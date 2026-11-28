@@ -1,0 +1,43 @@
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-logo"><i class="fas fa-graduation-cap"></i></div>
+        <div class="brand-name">DNS <span>Academy</span></div>
+        <button class="sidebar-close d-lg-none" id="sidebarClose" type="button" aria-label="Close menu"><i class="fas fa-times"></i></button>
+    </div>
+
+    <div class="sidebar-body">
+        <div class="menu-label">MAIN MENU</div>
+        <% if (canSee('dashboard')) { %>
+            <a href="/dashboard" class="sidebar-link <%= page === 'dashboard' ? 'active' : '' %>"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+        <% } %>
+
+        <div class="menu-label">ACADEMIC MANAGEMENT</div>
+        <% if (canSee('students')) { %>
+            <a href="/students" class="sidebar-link <%= ['students', 'student-payments', 'student-archived'].includes(page) ? 'active' : '' %>"><i class="fas fa-user-graduate"></i><span>Students</span></a>
+            <a href="/students/archived" class="sidebar-link <%= page === 'archived' ? 'active' : '' %>"><i class="fas fa-box-archive"></i><span>Archived Students</span></a>
+        <% } %>
+        <% if (canSee('categories')) { %>
+            <a href="/categories" class="sidebar-link <%= page === 'categories' ? 'active' : '' %>"><i class="fas fa-tags"></i><span>Categories</span></a>
+        <% } %>
+
+        <div class="menu-label">FEE & COLLECTIONS</div>
+        <% if (canSee('payments')) { %>
+            <a href="/payments/scheduled" class="sidebar-link <%= page === 'scheduled-payments' ? 'active' : '' %>"><i class="far fa-calendar-alt"></i><span>Scheduled Payments</span></a>
+            <a href="/qr-collection" class="sidebar-link <%= page === 'collections' ? 'active' : '' %>"><i class="fas fa-qrcode"></i><span>QR Payment Collection</span></a>
+            <a href="/cashfree" class="sidebar-link <%= page === 'cashfree' ? 'active' : '' %>"><i class="fas fa-wallet"></i><span>Cashfree Settings</span></a>
+        <% } %>
+
+        <div class="menu-label">SYSTEM</div>
+        <% if (canSee('users')) { %>
+            <a href="/users" class="sidebar-link <%= page === 'users' ? 'active' : '' %>"><i class="fas fa-user-shield"></i><span>Users & Permissions</span></a>
+        <% } %>
+        <% if (canSee('settings')) { %>
+            <a href="/settings" class="sidebar-link <%= page === 'settings' ? 'active' : '' %>"><i class="fas fa-cog"></i><span>Settings</span></a>
+        <% } %>
+    </div>
+
+    <div class="sidebar-footer">
+        <div class="sidebar-version"><div class="version-icon"><i class="fas fa-code-branch"></i></div><div><strong>DNS Academy ERP</strong><small>Fee Management</small></div></div>
+    </div>
+</aside>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>

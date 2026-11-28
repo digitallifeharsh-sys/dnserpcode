@@ -1,0 +1,84 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div><h1 class="h3 mb-1"><%= student.id ? 'Edit student' : 'Student admission' %></h1><p class="text-muted mb-0">Complete all three sections to register the student.</p></div>
+    <a href="/students" class="btn btn-outline-secondary">Back to students</a>
+</div>
+<% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+<form method="post" action="<%= student.id ? '/students/' + student.id : '/students' %>" class="card border-0 shadow-sm" id="student-form">
+    <div class="card-body">
+        <section class="mb-4">
+            <h2 class="h5 border-bottom pb-2 mb-3">1. Personal Information</h2>
+            <div class="row g-3">
+                <div class="col-12"><label class="form-label" for="student-image">Student image</label><div class="d-flex align-items-center gap-3"><% if (student.hasImage) { %><img id="student-image-preview" src="/students/<%= student.id %>/image" alt="Student image" class="rounded-circle" style="width:76px;height:76px;object-fit:cover"><% } else { %><img id="student-image-preview" alt="Image preview" class="rounded-circle d-none" style="width:76px;height:76px;object-fit:cover"><% } %><input class="form-control" id="student-image" type="file" accept="image/jpeg,image/png,image/webp"><input type="hidden" id="image-data" name="image_data"><input type="hidden" name="has_image" value="<%= student.hasImage ? '1' : '' %>"></div><div class="form-text">JPG, PNG, or WebP; maximum 2 MB.</div><% if (student.hasImage) { %><div class="form-check mt-2"><input class="form-check-input" type="checkbox" id="remove-image" name="remove_image"><label class="form-check-label" for="remove-image">Remove current image</label></div><% } %></div>
+                <div class="col-md-6"><label class="form-label" for="student-name">Student Name *</label><input class="form-control" id="student-name" name="student_name" maxlength="160" value="<%= student.student_name %>" required></div>
+                <div class="col-md-6"><label class="form-label" for="father-name">Father Name</label><input class="form-control" id="father-name" name="father_name" maxlength="160" value="<%= student.father_name || '' %>"></div>
+                <div class="col-md-6"><label class="form-label" for="mother-name">Mother Name</label><input class="form-control" id="mother-name" name="mother_name" maxlength="160" value="<%= student.mother_name || '' %>"></div>
+                <div class="col-md-6"><label class="form-label" for="mobile">Mobile Number</label><input class="form-control" id="mobile" name="mobile" type="tel" maxlength="30" value="<%= student.mobile || student.father_phone || '' %>"></div>
+                <div class="col-md-6"><label class="form-label" for="alternate-phone">Alternate Mobile Number</label><input class="form-control" id="alternate-phone" name="alternate_phone" type="tel" maxlength="30" value="<%= student.alternate_phone || '' %>"></div>
+                <div class="col-md-6"><label class="form-label" for="address">Address</label><textarea class="form-control" id="address" name="address" rows="2" maxlength="2000"><%= student.address || '' %></textarea></div>
+            </div>
+        </section>
+        <section class="mb-4">
+            <h2 class="h5 border-bottom pb-2 mb-3">2. Academic Information</h2>
+            <div class="row g-3">
+                <div class="col-md-4"><label class="form-label" for="board">Board *</label><select class="form-select" id="board" name="board" required><option value="">Select board</option><option value="NIOS" <%= student.board === 'NIOS' ? 'selected' : '' %>>NIOS</option><option value="BOSSE" <%= student.board === 'BOSSE' ? 'selected' : '' %>>BOSSE</option></select></div>
+                <div class="col-md-4"><label class="form-label" for="student-class">Class *</label><select class="form-select" id="student-class" name="student_class" required><option value="">Select Class</option><% ['10th','12th'].forEach(v => { %><option value="<%= v %>" <%= student.student_class === v ? 'selected' : '' %>><%= v %></option><% }) %></select></div>
+                <div class="col-md-4" id="stream-wrap"><label class="form-label" for="stream">Stream (12th)</label><select class="form-select" id="stream" name="stream"><option value="">Select Stream</option><% ['Arts','Commerce','Science'].forEach(v => { %><option value="<%= v %>" <%= student.stream === v ? 'selected' : '' %>><%= v %></option><% }) %></select></div>
+                <div class="col-md-6"><label class="form-label" for="category-id">Category</label><select class="form-select" id="category-id" name="category_id"><option value="">Select category</option><% categories.forEach(category => { %><option value="<%= category.id %>" <%= String(student.category_id) === String(category.id) ? 'selected' : '' %>><%= category.name %></option><% }) %></select></div>
+                <div class="col-md-6"><label class="form-label" for="subcategory-id">Subcategory</label><select class="form-select" id="subcategory-id" name="subcategory_id"><option value="">Select subcategory</option><% subcategories.forEach(subcategory => { %><option value="<%= subcategory.id %>" <%= String(student.subcategory_id) === String(subcategory.id) ? 'selected' : '' %>><%= subcategory.name %></option><% }) %></select></div>
+            </div>
+        </section>
+        <section>
+            <h2 class="h5 border-bottom pb-2 mb-3">3. Fee Information</h2>
+            <div class="row g-3">
+                <div class="col-md-6"><label class="form-label" for="total-fee">Total Course Fee (₹) *</label><input class="form-control" id="total-fee" name="total_fee" type="number" min="0" max="99999999.99" step="0.01" value="<%= student.total_fee ?? '0.00' %>" required></div>
+                <div class="col-md-6"><label class="form-label" for="admission-date">Admission Date *</label><input class="form-control" id="admission-date" name="admission_date" type="date" value="<%= student.admission_date ? (student.admission_date instanceof Date ? student.admission_date.toISOString().slice(0,10) : String(student.admission_date).slice(0,10)) : new Date().toISOString().slice(0,10) %>" required></div>
+                <div class="col-12"><label class="form-label" for="remarks">Remarks</label><textarea class="form-control" id="remarks" name="remarks" rows="2" maxlength="5000"><%= student.remarks || '' %></textarea></div>
+            </div>
+        </section>
+        <input type="hidden" name="gender" value="<%= student.gender || 'Other' %>">
+        <input type="hidden" name="student_number" value="<%= student.student_number || '' %>">
+        <input type="hidden" name="father_phone" value="<%= student.father_phone || '' %>">
+        <input type="hidden" name="whatsapp_number" value="<%= student.whatsapp_number || '' %>">
+    </div>
+    <div class="card-footer bg-white d-flex gap-2"><button class="btn btn-primary" id="save-student"><%= student.id ? 'Update student' : 'Save admission' %></button><a href="/students" class="btn btn-outline-secondary">Cancel</a></div>
+</form>
+<script>
+(() => {
+    const form = document.getElementById('student-form');
+    const imageInput = document.getElementById('student-image');
+    const imageData = document.getElementById('image-data');
+    const preview = document.getElementById('student-image-preview');
+    const category = document.getElementById('category-id');
+    const subcategory = document.getElementById('subcategory-id');
+    const studentClass = document.getElementById('student-class');
+    const streamWrap = document.getElementById('stream-wrap');
+    let imageRead = Promise.resolve();
+    const updateStream = () => { streamWrap.hidden = studentClass.value !== '12th'; };
+    studentClass.addEventListener('change', updateStream);
+    updateStream();
+    imageInput.addEventListener('change', () => {
+        const file = imageInput.files[0];
+        imageData.value = '';
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) { imageInput.value = ''; alert('Student image must be 2 MB or smaller.'); return; }
+        imageRead = new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => { imageData.value = reader.result; preview.src = reader.result; preview.classList.remove('d-none'); resolve(); };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    });
+    form.addEventListener('submit', async event => {
+        event.preventDefault();
+        try { await imageRead; form.submit(); } catch { alert('Could not read the selected image.'); }
+    });
+    category.addEventListener('change', async () => {
+        subcategory.innerHTML = '<option value="">Select subcategory (optional)</option>';
+        if (!category.value) return;
+        const response = await fetch(`/students/categories/${encodeURIComponent(category.value)}/subcategories`);
+        if (!response.ok) return;
+        const items = await response.json();
+        items.forEach(item => { const option = document.createElement('option'); option.value = item.id; option.textContent = item.name; subcategory.append(option); });
+    });
+})();
+</script>

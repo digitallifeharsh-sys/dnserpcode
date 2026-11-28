@@ -1,0 +1,140 @@
+<%
+const dateLabel = value => {
+    if (!value) return '—';
+    const raw = value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
+    const parts = raw.split('-');
+    return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : raw;
+};
+const money = value => Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const statusClass = value => ['RECEIVED'].includes(value) ? 'bg-success' : ['OVERDUE'].includes(value) ? 'bg-danger' : ['CANCELLED'].includes(value) ? 'bg-secondary' : ['PARTIAL','DUE_TODAY'].includes(value) ? 'bg-warning text-dark' : 'bg-primary bg-opacity-10 text-primary';
+%>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h1 class="h3 mb-1">Student Profile</h1>
+        <p class="text-muted mb-0"><%= student.student_name %> · <%= student.student_number || ('DNS' + String(student.id).padStart(6,'0')) %></p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="/students/<%= student.id %>/edit" class="btn btn-outline-secondary">Edit Student</a>
+        <a href="/students" class="btn btn-outline-secondary">Back to Students</a>
+    </div>
+</div>
+<% if (success) { %><div class="alert alert-success"><%= success %></div><% } %>
+<% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-6 col-lg-3"><small class="text-muted d-block">Total Course Fee</small><strong class="fs-5">₹<%= money(summary.total_fee) %></strong></div>
+            <div class="col-6 col-lg-3"><small class="text-muted d-block">Paid so far</small><strong class="fs-5 text-success">₹<%= money(summary.paid_total) %></strong></div>
+            <div class="col-6 col-lg-3"><small class="text-muted d-block">Reserved (Schedules + QR)</small><strong class="fs-5">₹<%= money(Number(summary.reserved_total) + Number(summary.qr_pending_total) + Number(summary.qr_reserved_total)) %></strong></div>
+            <div class="col-6 col-lg-3"><small class="text-muted d-block">Available to collect</small><strong class="fs-5 text-primary">₹<%= money(summary.available_to_collect) %></strong></div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4"><small class="text-muted d-block">Student Name</small><strong><%= student.student_name %></strong></div>
+            <div class="col-md-4"><small class="text-muted d-block">Board</small><strong><%= student.board || '—' %></strong></div>
+            <div class="col-md-4"><small class="text-muted d-block">Class / Stream</small><strong><%= student.student_class || '—' %><%= student.stream ? ' · ' + student.stream : '' %></strong></div>
+            <div class="col-md-4"><small class="text-muted d-block">Father Name</small><strong><%= student.father_name || '—' %></strong></div>
+            <div class="col-md-4"><small class="text-muted d-block">Mobile</small><strong><%= student.mobile || student.father_phone || '—' %></strong></div>
+            <div class="col-md-4"><small class="text-muted d-block">Admission Date</small><strong><%= dateLabel(student.admission_date) %></strong></div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4 payment-system-card">
+    <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
+        <div><h2 class="h5 mb-1">Payments</h2><p class="small text-muted mb-0">Collected payments and scheduled installments</p></div>
+        <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#collectPaymentModal" <%= summary.available_to_collect <= 0 ? 'disabled' : '' %>><i class="fas fa-plus me-1"></i> Collect Payment</button>
+            <a class="btn btn-outline-primary" href="/payments/scheduled?student_id=<%= student.id %>"><i class="far fa-calendar-alt me-1"></i> Installment Schedule</a>
+            <a class="btn btn-outline-secondary" href="/students/<%= student.id %>/export?type=payments"><i class="fas fa-file-excel me-1"></i> Export History</a>
+            <a class="btn btn-outline-secondary" href="/students/<%= student.id %>/export?type=scheduled"><i class="fas fa-file-excel me-1"></i> Export Schedule</a>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <ul class="nav nav-tabs px-3 pt-2" role="tablist">
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#payment-history-panel" type="button" role="tab">Payment History <span class="badge bg-light text-primary ms-1"><%= payments.length %></span></button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#schedule-panel" type="button" role="tab">Schedule Payment <span class="badge bg-light text-primary ms-1"><%= installments.length %></span></button></li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="payment-history-panel" role="tabpanel">
+                <% if (!payments.length) { %>
+                    <div class="text-center py-5"><i class="far fa-credit-card text-primary fs-2 mb-3"></i><h3 class="h6 mb-1">No payments yet</h3><p class="text-muted mb-0">Payments will appear here after collection.</p></div>
+                <% } else { %>
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0 payment-history-table">
+                            <thead class="table-light"><tr><th>Receipt Number</th><th>Payment Date</th><th>Amount</th><th>Payment Mode</th><th>Transaction Reference</th><th>Remarks</th></tr></thead>
+                            <tbody><% payments.forEach(payment => { %>
+                                <tr>
+                                    <td><span class="text-nowrap fw-semibold"><%= payment.receipt_no || '—' %></span></td>
+                                    <td class="text-nowrap"><%= dateLabel(payment.payment_date) %></td>
+                                    <td class="text-nowrap fw-semibold">₹<%= money(payment.amount) %></td>
+                                    <td><%= payment.payment_mode %></td>
+                                    <td><%= payment.transaction_reference || '—' %></td>
+                                    <td><%= payment.remarks || '—' %></td>
+                                </tr>
+                            <% }) %></tbody>
+                        </table>
+                    </div>
+                <% } %>
+            </div>
+            <div class="tab-pane fade" id="schedule-panel" role="tabpanel">
+                <% if (!installments.length) { %>
+                    <div class="text-center py-5"><i class="far fa-calendar-alt text-primary fs-2 mb-3"></i><h3 class="h6 mb-1">No scheduled payments yet</h3><p class="text-muted mb-0">Use Installment Schedule to plan future payments.</p></div>
+                <% } else { %>
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0 payment-history-table">
+                            <thead class="table-light"><tr><th>Installment</th><th>Scheduled Date</th><th>Scheduled Amount</th><th>Received Amount</th><th>Remaining Amount</th><th>Payment Mode</th><th>Status</th></tr></thead>
+                            <tbody><% installments.forEach((item, index) => { %>
+                                <tr>
+                                    <td class="fw-semibold"><%= item.reference_number || `Installment ${index + 1}` %></td>
+                                    <td class="text-nowrap"><%= dateLabel(item.scheduled_date) %></td>
+                                    <td class="text-nowrap">₹<%= money(item.scheduled_amount) %></td>
+                                    <td class="text-nowrap text-success">₹<%= money(item.received_amount) %></td>
+                                    <td class="text-nowrap fw-semibold">₹<%= money(item.remaining_amount) %></td>
+                                    <td><%= item.payment_mode %></td>
+                                    <td><span class="badge <%= statusClass(item.display_status || item.status) %>"><%= String(item.display_status || item.status).replaceAll('_',' ') %></span></td>
+                                </tr>
+                            <% }) %></tbody>
+                        </table>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="collectPaymentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+        <form method="post" action="/students/<%= student.id %>/payments/collect">
+            <div class="modal-header"><h2 class="modal-title h5">Collect Fee Payment</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+            <div class="modal-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4"><div class="p-3 rounded bg-light h-100"><small class="text-muted d-block">Total Fee</small><strong>₹<%= money(summary.total_fee) %></strong></div></div>
+                    <div class="col-md-4"><div class="p-3 rounded bg-light h-100"><small class="text-muted d-block">Paid so far</small><strong class="text-success">₹<%= money(summary.paid_total) %></strong></div></div>
+                    <div class="col-md-4"><div class="p-3 rounded bg-light h-100"><small class="text-muted d-block">Available to collect</small><strong class="text-primary">₹<%= money(summary.available_to_collect) %></strong></div></div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label">Student ID</label><input class="form-control" value="<%= student.student_number || ('DNS' + String(student.id).padStart(6,'0')) %>" readonly></div>
+                    <div class="col-md-6"><label class="form-label">Payment Amount <span class="text-danger">*</span></label><input class="form-control" id="collect-amount" name="amount" type="number" min="0.01" max="<%= Number(summary.available_to_collect).toFixed(2) %>" step="0.01" required><button class="btn btn-link btn-sm px-0" type="button" id="fill-full-due">Fill full due amount</button></div>
+                    <div class="col-md-6"><label class="form-label">Payment Date <span class="text-danger">*</span></label><input class="form-control" name="payment_date" type="date" value="<%= new Date().toLocaleDateString('en-CA') %>" required></div>
+                    <div class="col-md-6"><label class="form-label">Payment Mode</label><select class="form-select" name="payment_mode"><option>Cash</option><option>UPI</option><option>Bank</option><option>Card</option><option>Other</option></select></div>
+                    <div class="col-md-6"><label class="form-label">Transaction Reference</label><input class="form-control" name="transaction_reference" maxlength="120"></div>
+                    <div class="col-md-6"><label class="form-label">Remarks</label><input class="form-control" name="remarks" maxlength="500"></div>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" <%= summary.available_to_collect <= 0 ? 'disabled' : '' %>>Collect Payment</button></div>
+        </form>
+    </div></div>
+</div>
+<script>
+(() => {
+    const button = document.getElementById('fill-full-due');
+    const input = document.getElementById('collect-amount');
+    button?.addEventListener('click', () => { input.value = '<%= Number(summary.available_to_collect).toFixed(2) %>'; input.focus(); });
+})();
+</script>

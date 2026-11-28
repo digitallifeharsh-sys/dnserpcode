@@ -1,0 +1,155 @@
+<%
+const dateLabel = value => {
+    if (!value) return '—';
+    const raw = value instanceof Date ? value.toISOString().slice(0,10) : String(value).slice(0,10);
+    const p = raw.split('-');
+    return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : raw;
+};
+const money = value => Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const statusClass = value => value === 'OVERDUE' ? 'bg-danger' : value === 'DUE_TODAY' ? 'bg-warning text-dark' : value === 'RECEIVED' ? 'bg-success' : value === 'CANCELLED' ? 'bg-secondary' : value === 'PARTIAL' ? 'bg-info text-dark' : 'bg-primary bg-opacity-10 text-primary';
+%>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div><h1 class="h3 mb-1">Scheduled Payments</h1><p class="text-muted mb-0">Plan installments and record actual fee collections.</p></div>
+    <a class="btn btn-outline-secondary" href="/students">Students</a>
+</div>
+<% if (success) { %><div class="alert alert-success"><%= success %></div><% } %>
+<% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white py-3"><h2 class="h5 mb-0">Schedule an Installment</h2></div>
+    <div class="card-body">
+        <form method="post" action="/payments/scheduled" id="schedulePaymentForm" class="row g-3 align-items-end">
+            <div class="col-12 col-lg-4">
+                <label class="form-label" for="schedule-student">Student <span class="text-danger">*</span></label>
+                <select class="form-select" id="schedule-student" name="student_id" required>
+                    <option value="">Select student</option>
+                    <% students.forEach(s => { %><option value="<%= s.id %>" <%= String(s.id) === selectedStudentId ? 'selected' : '' %>><%= s.student_name %> · <%= s.student_number || ('DNS' + String(s.id).padStart(6,'0')) %></option><% }) %>
+                </select>
+                <div class="form-text" id="available-hint"><%= selectedStudentId ? `Available to schedule: ₹${money(availableDue)} (unpaid installments deducted)` : 'Select a student to see unreserved due.' %></div>
+            </div>
+            <div class="col-12 col-md-6 col-lg-2">
+                <label class="form-label" for="schedule-title">Installment</label>
+                <input class="form-control" id="schedule-title" name="reference_number" placeholder="e.g. Installment 1" maxlength="120">
+            </div>
+            <div class="col-12 col-md-6 col-lg-2">
+                <label class="form-label" for="schedule-amount">Scheduled Amount <span class="text-danger">*</span></label>
+                <input class="form-control" id="schedule-amount" name="scheduled_amount" type="number" min="0.01" step="0.01" required>
+                <button class="btn btn-link btn-sm px-0" type="button" id="fill-available">Fill available due</button>
+            </div>
+            <div class="col-12 col-md-6 col-lg-2">
+                <label class="form-label" for="schedule-date">Scheduled Date <span class="text-danger">*</span></label>
+                <input class="form-control" id="schedule-date" name="scheduled_date" type="date" value="<%= new Date().toLocaleDateString('en-CA') %>" required>
+            </div>
+            <div class="col-12 col-md-6 col-lg-2">
+                <label class="form-label" for="schedule-mode">Payment Mode</label>
+                <select class="form-select" id="schedule-mode" name="payment_mode"><option>Cash</option><option>UPI</option><option>Bank</option><option>Card</option><option>Other</option></select>
+            </div>
+            <div class="col-12 col-md-6 col-lg-6">
+                <label class="form-label" for="schedule-reference">Transaction Reference</label>
+                <input class="form-control" id="schedule-reference" name="transaction_reference" maxlength="120" placeholder="UPI / cheque / transaction ID">
+            </div>
+            <div class="col-12 col-md-6 col-lg-6">
+                <label class="form-label" for="schedule-remarks">Remarks</label>
+                <input class="form-control" id="schedule-remarks" name="remarks" maxlength="500" placeholder="Additional installment details">
+            </div>
+            <div class="col-12"><button class="btn btn-primary w-100"><i class="fas fa-calendar-plus me-1"></i> Save Scheduled Payment</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
+        <strong>Payment Schedule</strong>
+        <form method="get" action="/payments/scheduled" class="d-flex flex-wrap gap-2">
+            <% if (selectedStudentId) { %><input type="hidden" name="student_id" value="<%= selectedStudentId %>"><% } %>
+            <select class="form-select form-select-sm" name="status" aria-label="Schedule status" onchange="this.form.submit()" style="min-width:190px">
+                <option value="ACTIVE" <%= status==='ACTIVE'?'selected':'' %>>Active installments</option>
+                <option value="ALL" <%= status==='ALL'?'selected':'' %>>All records</option>
+                <option value="UPCOMING" <%= status==='UPCOMING'?'selected':'' %>>Upcoming</option>
+                <option value="DUE_TODAY" <%= status==='DUE_TODAY'?'selected':'' %>>Due today</option>
+                <option value="OVERDUE" <%= status==='OVERDUE'?'selected':'' %>>Overdue</option>
+                <option value="PARTIAL" <%= status==='PARTIAL'?'selected':'' %>>Partial</option>
+                <option value="RECEIVED" <%= status==='RECEIVED'?'selected':'' %>>Received</option>
+                <option value="CANCELLED" <%= status==='CANCELLED'?'selected':'' %>>Cancelled</option>
+            </select>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="table align-middle mb-0 payment-history-table">
+            <thead class="table-light"><tr><th>Student</th><th>Installment</th><th>Scheduled</th><th>Amount / Remaining</th><th>Mode</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+                <% const shownInstallments = selectedStudentId ? installments.filter(item => String(item.student_id) === selectedStudentId) : installments; %>
+                <% if (!shownInstallments.length) { %><tr><td colspan="7" class="text-center text-muted py-5">No scheduled payments found.</td></tr><% } %>
+                <% shownInstallments.forEach(item => { const active = ['UPCOMING','PARTIAL'].includes(item.status); %>
+                    <tr>
+                        <td><a class="text-decoration-none fw-semibold" href="/students/<%= item.student_id %>"><%= item.student_name %></a><small class="d-block text-muted"><%= item.student_code %></small></td>
+                        <td><%= item.reference_number || '—' %></td>
+                        <td class="text-nowrap"><%= dateLabel(item.scheduled_date) %></td>
+                        <td class="text-nowrap">₹<%= money(item.scheduled_amount) %><small class="d-block text-muted">Remaining ₹<%= money(item.remaining_amount) %></small><small class="d-block text-success">Received ₹<%= money(item.received_amount) %></small></td>
+                        <td><%= item.payment_mode %></td>
+                        <td><span class="badge <%= statusClass(item.display_status || item.status) %>"><%= String(item.display_status || item.status).replaceAll('_',' ') %></span></td>
+                        <td>
+                            <% if (active) { %>
+                                <div class="d-flex flex-wrap gap-1">
+                                    <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#receive-<%= item.id %>">Receive</button>
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#edit-<%= item.id %>">Edit</button>
+                                    <form method="post" action="/payments/scheduled/<%= item.id %>/cancel" onsubmit="return confirm('Cancel this installment?')"><button class="btn btn-sm btn-outline-danger">Cancel</button></form>
+                                </div>
+                            <% } else { %><span class="text-muted">—</span><% } %>
+                        </td>
+                    </tr>
+                    <% if (active) { %>
+                        <tr class="collapse" id="receive-<%= item.id %>"><td colspan="7">
+                            <form method="post" action="/payments/scheduled/<%= item.id %>/receive" class="row g-2 align-items-end schedule-action-form">
+                                <div class="col-12"><strong>Receive installment payment</strong></div>
+                                <div class="col-md-3"><label class="form-label">Amount received *</label><input class="form-control form-control-sm" type="number" name="amount" min="0.01" max="<%= Number(item.remaining_amount).toFixed(2) %>" step="0.01" value="<%= Number(item.remaining_amount).toFixed(2) %>" required></div>
+                                <div class="col-md-3"><label class="form-label">Payment Date *</label><input class="form-control form-control-sm" type="date" name="payment_date" value="<%= new Date().toLocaleDateString('en-CA') %>" required></div>
+                                <div class="col-md-3"><label class="form-label">Transaction Reference</label><input class="form-control form-control-sm" name="transaction_reference" maxlength="120"></div>
+                                <div class="col-md-3"><label class="form-label">Remarks</label><input class="form-control form-control-sm" name="remarks" maxlength="500"></div>
+                                <div class="col-12"><button class="btn btn-sm btn-success">Confirm Received</button></div>
+                            </form>
+                        </td></tr>
+                        <tr class="collapse" id="edit-<%= item.id %>"><td colspan="7">
+                            <form method="post" action="/payments/scheduled/<%= item.id %>/update" class="row g-2 align-items-end schedule-action-form">
+                                <div class="col-md-3"><label class="form-label">Installment</label><input class="form-control form-control-sm" name="reference_number" value="<%= item.reference_number || '' %>" maxlength="120"></div>
+                                <div class="col-md-3"><label class="form-label">Scheduled Amount *</label><input class="form-control form-control-sm" type="number" name="scheduled_amount" min="<%= Number(item.received_amount) > 0 ? Number(item.received_amount).toFixed(2) : '0.01' %>" step="0.01" value="<%= Number(item.scheduled_amount).toFixed(2) %>" required></div>
+                                <div class="col-md-3"><label class="form-label">Scheduled Date *</label><input class="form-control form-control-sm" type="date" name="scheduled_date" value="<%= item.scheduled_date instanceof Date ? item.scheduled_date.toISOString().slice(0,10) : String(item.scheduled_date).slice(0,10) %>" required></div>
+                                <div class="col-md-3"><label class="form-label">Payment Mode</label><select class="form-select form-select-sm" name="payment_mode"><% ['Cash','UPI','Bank','Card','Other'].forEach(mode => { %><option <%= item.payment_mode===mode?'selected':'' %>><%= mode %></option><% }) %></select></div>
+                                <div class="col-md-6"><label class="form-label">Transaction Reference</label><input class="form-control form-control-sm" name="transaction_reference" value="<%= item.transaction_reference || '' %>" maxlength="120"></div>
+                                <div class="col-md-6"><label class="form-label">Remarks</label><input class="form-control form-control-sm" name="remarks" value="<%= item.remarks || '' %>" maxlength="500"></div>
+                                <div class="col-12"><button class="btn btn-sm btn-primary">Save Changes</button></div>
+                            </form>
+                        </td></tr>
+                    <% } %>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+(() => {
+    const student = document.getElementById('schedule-student');
+    const amount = document.getElementById('schedule-amount');
+    const hint = document.getElementById('available-hint');
+    let available = Number('<%= Number(availableDue || 0).toFixed(2) %>');
+    const fetchAvailable = async () => {
+        if (!student.value) { available = 0; hint.textContent = 'Select a student to see unreserved due.'; amount.max = ''; return; }
+        hint.textContent = 'Checking available due…';
+        try {
+            const response = await fetch(`/payments/scheduled/available/${encodeURIComponent(student.value)}`, { headers: { Accept: 'application/json' } });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.message || 'Could not load available due.');
+            available = Number(data.data.available_due || 0);
+            amount.max = available.toFixed(2);
+            hint.textContent = `Available to schedule: ₹${available.toLocaleString('en-IN')} (unpaid installments deducted)`;
+        } catch (error) { available = 0; hint.textContent = error.message; }
+    };
+    student?.addEventListener('change', fetchAvailable);
+    document.getElementById('fill-available')?.addEventListener('click', () => {
+        if (available <= 0) return;
+        amount.value = available.toFixed(2);
+    });
+    if (student?.value) fetchAvailable();
+})();
+</script>

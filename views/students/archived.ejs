@@ -1,0 +1,4 @@
+<div class="d-flex justify-content-between align-items-center mb-4"><h1 class="h3">Archived Students</h1><a href="/students" class="btn btn-outline-secondary">Back to Students</a></div>
+<div class="card border-0 shadow-sm"><div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Student</th><th>Father</th><th>Mobile</th><th>Board</th><th>Class</th><th>Action</th></tr></thead><tbody>
+<% students.forEach(student => { %><tr><td><%= student.student_name %></td><td><%= student.father_name || '—' %></td><td><%= student.mobile || '—' %></td><td><%= student.board || '—' %></td><td><%= student.student_class || '—' %></td><td><form method="post" action="/students/<%= student.id %>/restore"><button class="btn btn-sm btn-outline-success">Restore</button></form></td></tr><% }) %>
+<% if (!students.length) { %><tr><td colspan="6" class="text-center text-muted py-4">No archived students.</td></tr><% } %></tbody></table></div></div>

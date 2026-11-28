@@ -1,0 +1,52 @@
+<header class="top-header">
+
+    <div class="header-left">
+
+        <button class="sidebar-toggle" id="sidebarToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <div class="breadcrumb-area">
+            <span>Pages</span>
+            <i class="fas fa-chevron-right"></i>
+            <strong><%= title %></strong>
+        </div>
+
+    </div>
+
+    <div class="header-right">
+
+        <div class="header-search">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search anything...">
+            <span>⌘ K</span>
+        </div>
+
+        <button class="header-action" title="Notifications">
+            <i class="far fa-bell"></i>
+            <span class="notification-dot"></span>
+        </button>
+
+        <button class="header-action" title="Messages">
+            <i class="far fa-envelope"></i>
+        </button>
+
+        <div class="header-divider"></div>
+
+        <div class="user-profile">
+
+            <div class="user-avatar"><%= (currentUser?.name || 'U').charAt(0).toUpperCase() %></div>
+
+            <div class="user-details">
+                <strong><%= currentUser?.name || 'User' %></strong>
+                <small><%= currentUser?.permissions?.admin ? 'Administrator' : 'User' %></small>
+            </div>
+
+            <i class="fas fa-chevron-down profile-arrow"></i>
+
+        </div>
+        <form method="post" action="/logout" class="ms-2"><button class="btn btn-sm btn-outline-secondary" type="submit">Logout</button></form>
+
+    </div>
+
+</header>

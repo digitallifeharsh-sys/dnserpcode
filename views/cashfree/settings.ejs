@@ -1,0 +1,51 @@
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+        <h1 class="h3 mb-2">Cashfree payments</h1>
+        <p class="text-muted mb-0">Connect Cashfree to collect student fee installments. Sandbox is for safe payment testing; production uses live credentials.</p>
+    </div>
+    <span class="badge <%= configuration.environment === 'sandbox' ? 'text-bg-info' : 'text-bg-warning' %> fs-6"><%= configuration.environment === 'sandbox' ? 'Sandbox' : 'Production' %></span>
+</div>
+
+<% if (success) { %><div class="alert alert-success"><%= success %></div><% } %>
+<% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+<% if (environmentOverrides) { %><div class="alert alert-info">CASHFREE_* environment variables override saved values. Remove the relevant variable from your local environment to manage it here.</div><% } %>
+
+<form method="post" action="/cashfree" class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center p-3 mb-4 border rounded bg-light">
+            <div><strong>Accept online fee payments</strong><div class="form-text">Enable only after you have tested the matching environment.</div></div>
+            <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" role="switch" id="cashfree-enabled" name="enabled" <%= configuration.enabled ? 'checked' : '' %>><label class="form-check-label" for="cashfree-enabled">Enabled</label></div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label" for="cashfree-environment">Environment</label>
+                <select class="form-select" id="cashfree-environment" name="environment" required>
+                    <option value="sandbox" <%= configuration.environment === 'sandbox' ? 'selected' : '' %>>Sandbox — test payments</option>
+                    <option value="production" <%= configuration.environment === 'production' ? 'selected' : '' %>>Production — live payments</option>
+                </select>
+            </div>
+            <div class="col-md-6"><label class="form-label" for="cashfree-client-id">Client ID</label><input class="form-control" id="cashfree-client-id" name="client_id" value="<%= configuration.clientId %>" autocomplete="off" required></div>
+            <div class="col-12">
+                <label class="form-label" for="cashfree-client-secret">Client Secret</label>
+                <input class="form-control" id="cashfree-client-secret" name="client_secret" type="password" autocomplete="new-password" placeholder="<%= configuration.hasClientSecret ? 'Secret saved — enter only to replace it' : 'Paste Cashfree Client Secret' %>" <%= configuration.hasClientSecret ? '' : 'required' %>>
+                <div class="form-text">Cashfree API version is set automatically to 2026-01-01. The secret is encrypted before database storage.</div>
+            </div>
+            <div class="col-12"><label class="form-label" for="cashfree-return-url">Return URL <span class="text-muted">(optional)</span></label><input class="form-control" id="cashfree-return-url" name="return_url" type="url" value="<%= configuration.returnUrl %>" placeholder="https://your-domain.example/students"></div>
+            <div class="col-12"><label class="form-label" for="cashfree-webhook-url">Webhook / notify URL <span class="text-muted">(optional)</span></label><input class="form-control" id="cashfree-webhook-url" name="webhook_url" type="url" value="<%= configuration.webhookUrl %>" placeholder="https://your-domain.example/cashfree/webhook"><div class="form-text">For local payment status updates, use an HTTPS tunnel to your local app and put its public URL here. Cashfree cannot reach localhost directly.</div></div>
+        </div>
+
+        <% if (!encryptionKeyConfigured) { %><div class="alert alert-warning mt-4 mb-0">Set PAYMENT_CONFIG_ENCRYPTION_KEY to at least 32 bytes in your local environment before saving a new Client Secret. Generate a private key with <code>openssl rand -hex 32</code>, add it to <code>.env</code>, and restart the app. Existing saved credentials can still be kept while changing other settings.</div><% } %>
+    </div>
+    <div class="card-footer bg-white"><button class="btn btn-primary"><i class="far fa-save me-1"></i> Save configuration</button></div>
+</form>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h2 class="h5">Test the connection</h2>
+        <p class="text-muted">Checks the saved Client ID and Secret against the selected Cashfree environment. Cashfree creates an unpaid ₹1 test order; no payment is taken by this check.</p>
+        <form method="post" action="/cashfree/test" onsubmit="return confirm('Create an unpaid ₹1 Cashfree test order using the selected environment?');">
+            <button class="btn btn-outline-primary" <%= !configuration.clientId || !configuration.hasClientSecret ? 'disabled' : '' %>><i class="fas fa-plug me-1"></i> Test saved credentials</button>
+        </form>
+    </div>
+</div>

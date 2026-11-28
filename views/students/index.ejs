@@ -1,0 +1,28 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div><h1 class="h3 mb-1">Students</h1><p class="text-muted mb-0">Search, filter and manage student admissions.</p></div>
+    <div class="d-flex gap-2"><a href="/students/archived" class="btn btn-outline-secondary">Archived</a><a href="/students/new" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Add Student</a></div>
+</div>
+<form method="get" action="/students" class="card border-0 shadow-sm mb-3"><div class="card-body"><div class="row g-2 align-items-end">
+    <div class="col-lg-3"><label class="form-label">Search</label><input class="form-control" name="search" value="<%= query.search %>" placeholder="Name, father or mobile"></div>
+    <div class="col-lg-2"><label class="form-label">Board</label><select class="form-select" name="board"><option value="">All boards</option><% filters.forEach(board => { %><option value="<%= board %>" <%= query.board === board ? 'selected' : '' %>><%= board %></option><% }) %></select></div>
+    <div class="col-lg-2"><label class="form-label">Class</label><select class="form-select" name="student_class"><option value="">All classes</option><% ['10th','12th'].forEach(v => { %><option value="<%= v %>" <%= query.student_class === v ? 'selected' : '' %>><%= v %></option><% }) %></select></div>
+    <div class="col-lg-2"><label class="form-label">Admission from</label><input class="form-control" type="date" name="from_date" value="<%= query.from_date %>"></div>
+    <div class="col-lg-2"><label class="form-label">Admission to</label><input class="form-control" type="date" name="to_date" value="<%= query.to_date %>"></div>
+    <div class="col-lg-1"><label class="form-label">Rows</label><select class="form-select" name="limit"><% [25,50,100].forEach(v => { %><option value="<%= v %>" <%= limit === v ? 'selected' : '' %>><%= v %></option><% }) %></select></div>
+    <div class="col-12 d-flex gap-2"><button class="btn btn-primary">Apply filters</button><a href="/students" class="btn btn-outline-secondary">Reset</a></div>
+</div></div></form>
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between"><strong>Student Records</strong><span class="text-muted small"><%= total %> records</span></div>
+    <% if (!rows.length) { %><div class="card-body text-muted">No students found for these filters.</div><% } else { %>
+    <div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Student Name</th><th>Father Name</th><th>Mother Name</th><th>Mobile Number</th><th>Alternate Mobile</th><th>Board</th><th>Class</th><th>Admission Date</th><th>Action</th></tr></thead>
+    <tbody><% rows.forEach(student => { %><tr>
+        <td><div class="d-flex align-items-center gap-2"><% if (student.image_mime) { %><img src="/students/<%= student.id %>/image" alt="" class="rounded-circle" style="width:36px;height:36px;object-fit:cover"><% } %><strong><%= student.student_name %></strong></div></td>
+        <td><%= student.father_name || '—' %></td><td><%= student.mother_name || '—' %></td><td><%= student.mobile || '—' %></td><td><%= student.alternate_phone || '—' %></td><td><%= student.board || '—' %></td><td><%= student.student_class || '—' %></td><td><%= student.admission_date ? new Date(student.admission_date).toLocaleDateString('en-IN') : '—' %></td>
+        <td><div class="d-flex gap-1"><a href="/students/<%= student.id %>" class="btn btn-sm btn-outline-secondary">Profile</a><a href="/students/<%= student.id %>/edit" class="btn btn-sm btn-outline-primary">Edit</a><form method="post" action="/students/<%= student.id %>/delete" onsubmit="return confirm('Move this student to archive?')"><button class="btn btn-sm btn-outline-danger">Archive</button></form></div></td>
+    </tr><% }) %></tbody></table></div>
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center"><span class="text-muted small">Page <%= page %> of <%= pages %></span><div class="d-flex gap-2">
+        <% if (page > 1) { %><a class="btn btn-sm btn-outline-secondary" href="?<%= new URLSearchParams({...query, page: page - 1, limit}).toString() %>">Previous</a><% } %>
+        <% if (page < pages) { %><a class="btn btn-sm btn-outline-secondary" href="?<%= new URLSearchParams({...query, page: page + 1, limit}).toString() %>">Next</a><% } %>
+    </div></div>
+    <% } %>
+</div>
